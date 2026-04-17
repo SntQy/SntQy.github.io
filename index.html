@@ -1,0 +1,2760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>红楼梦RPG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "宋体", serif;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a0f0a;
+            touch-action: none; /* 防止触摸时页面滚动 */
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        /* 触摸反馈动画 */
+        @keyframes touchFeedback {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* ========== 游戏封面样式 ========== */
+        .cover-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('游戏背景图.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .cover-container.hide {
+            display: none !important;
+        }
+
+        .cover-title {
+            color: #d4af37;
+            font-size: clamp(32px, 8vw, 64px);
+            letter-spacing: 20px;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.8);
+            margin-bottom: 20px;
+            text-align: center;
+            padding-left: 20px;
+        }
+
+        .cover-subtitle {
+            color: #fff;
+            font-size: clamp(14px, 3vw, 20px);
+            letter-spacing: 8px;
+            margin-bottom: 80px;
+            opacity: 0.8;
+        }
+
+        .cover-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .cover-btn {
+            width: 240px;
+            height: 50px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            font-size: 20px;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .cover-btn:hover {
+            background: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+        }
+
+        .game-desc-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #d4af37;
+            padding: 30px;
+            border-radius: 6px;
+            z-index: 10000;
+            display: none;
+        }
+
+        .game-desc-box.show {
+            display: block !important;
+        }
+
+        .desc-title {
+            color: #d4af37;
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+
+        .desc-content {
+            color: #fff;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .close-desc-btn {
+            width: 100%;
+            height: 40px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* ========== 游戏主体样式 ========== */
+        .game-title {
+            color: #d4af37;
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px #000;
+            letter-spacing: 6px;
+            display: none;
+        }
+
+        .game-title.show {
+            display: block !important;
+        }
+
+        .focus-tip {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+        }
+
+        .focus-tip.show {
+            display: block !important;
+        }
+
+        .game-container {
+            position: relative;
+            border: 3px solid #d4af37;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            background: #2d2520;
+            display: none;
+            max-width: 100%;
+            max-height: 80vh;
+        }
+
+        .game-container.show {
+            display: block !important;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #2d2520;
+            cursor: pointer;
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated;
+            /* 像素画清晰渲染 */
+            touch-action: none; /* 防止触摸时页面滚动 */
+        }
+
+        /* 地点名称悬浮提示 */
+        .location-tip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #d4af37;
+            padding: 15px 30px;
+            border-radius: 4px;
+            color: #d4af37;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .location-tip.show {
+            opacity: 1;
+        }
+
+        /* 对话面板 */
+        .dialogue-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 160px;
+            background: rgba(0, 0, 0, 0.92);
+            border-top: 2px solid #d4af37;
+            padding: 15px 25px;
+            display: none;
+            z-index: 10;
+        }
+
+        .dialogue-box.show {
+            display: block !important;
+        }
+
+        .dialogue-name {
+            color: #d4af37;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .dialogue-content {
+            color: #fff;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .dialogue-tip {
+            color: #d4af37;
+            font-size: 13px;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        /* 对话选项 */
+        .dialogue-options {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .option-btn {
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #d4af37;
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background: rgba(212, 175, 55, 0.4);
+        }
+
+        /* 左侧信息面板 */
+        .left-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 220px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #d4af37;
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 5;
+            display: none;
+        }
+
+        .left-panel.show {
+            display: block;
+        }
+
+        .panel-title {
+            color: #d4af37;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+            border-bottom: 1px solid #d4af37;
+            padding-bottom: 5px;
+        }
+
+        .panel-content {
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .task-done {
+            color: #4CAF50;
+            text-decoration: line-through;
+        }
+
+        .favor-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .favor-fill {
+            height: 100%;
+            background: #d4af37;
+            width: 50%;
+            transition: width 0.3s;
+        }
+
+        .collect-progress {
+            color: #d4af37;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        /* 右侧控制&图鉴面板 */
+        .right-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 220px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #d4af37;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 5;
+            display: none;
+        }
+
+        .right-panel.show {
+            display: block;
+        }
+
+        .debug-item {
+            color: #fff;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .key-active {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .key-inactive {
+            color: #666;
+        }
+
+        .lock-active {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .lock-inactive {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .control-btn-group {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .control-btn {
+            flex: 1;
+            background: #ff6b6b;
+            color: #fff;
+            border: none;
+            padding: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .control-btn:hover {
+            background: #ff5252;
+        }
+
+        .location-list {
+            margin-top: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .location-item {
+            color: #666;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+
+        .location-item.unlocked {
+            color: #d4af37;
+        }
+
+        /* 操作提示 */
+        .control-tip {
+            color: #d4af37;
+            margin-top: 12px;
+            font-size: 13px;
+            text-align: center;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .control-tip.show {
+            display: block !important;
+        }
+
+        /* 错误提示 */
+        .error-tip {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff0000;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 99999;
+            display: none;
+        }
+
+        .error-tip.show {
+            display: block !important;
+        }
+
+        /* 解谜界面 */
+        .puzzle-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #d4af37;
+            padding: 30px;
+            border-radius: 6px;
+            z-index: 10000;
+            display: none;
+        }
+
+        .puzzle-box.show {
+            display: block !important;
+        }
+
+        .puzzle-title {
+            color: #d4af37;
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+
+        .puzzle-content {
+            color: #fff;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .puzzle-input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid #d4af37;
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .puzzle-btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .puzzle-btn {
+            padding: 10px 20px;
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .puzzle-btn:hover {
+            background: rgba(212, 175, 55, 0.4);
+        }
+
+        .puzzle-btn.primary {
+            background: #d4af37;
+            color: #000;
+        }
+
+        .puzzle-btn.primary:hover {
+            background: #f4d03f;
+        }
+
+        /* 小屏适配 */
+        @media (max-width: 1400px) {
+
+            .left-panel,
+            .right-panel {
+                width: 180px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+
+            .left-panel,
+            .right-panel {
+                display: none !important;
+            }
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .game-container {
+                width: 100vw;
+                height: 100vh;
+                max-width: none;
+                max-height: none;
+            }
+            
+            #gameCanvas {
+                width: 100%;
+                height: 100%;
+            }
+            
+            .dialogue-box {
+                height: 200px; /* 增加移动端对话框高度 */
+            }
+            
+            .dialogue-content {
+                font-size: 14px; /* 调整字体大小 */
+            }
+            
+            .cover-title {
+                font-size: clamp(24px, 10vw, 48px); /* 响应式标题 */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 错误提示 -->
+    <div class="error-tip" id="errorTip"></div>
+    <!-- 解谜界面 -->
+    <div class="puzzle-box" id="puzzleBox">
+        <h2 class="puzzle-title" id="puzzleTitle"></h2>
+        <div class="puzzle-content" id="puzzleContent"></div>
+        <input type="text" class="puzzle-input" id="puzzleInput" placeholder="请输入答案">
+        <div class="puzzle-btn-group">
+            <button class="puzzle-btn" id="puzzleCancelBtn">取消</button>
+            <button class="puzzle-btn primary" id="puzzleSubmitBtn">提交</button>
+        </div>
+    </div>
+    <!-- 游戏封面 -->
+    <div class="cover-container" id="coverContainer">
+        <h1 class="cover-title">红楼梦</h1>
+        <p class="cover-subtitle">大观园 · 浮生若梦</p>
+        <div class="cover-btn-group">
+            <button class="cover-btn" id="startGameBtn">开始游戏</button>
+            <button class="cover-btn" id="gameDescBtn">游戏说明</button>
+            <button class="cover-btn" id="refreshBtn">刷新页面</button>
+        </div>
+    </div>
+    <!-- 游戏说明弹窗 -->
+    <div class="game-desc-box" id="gameDescBox">
+        <h2 class="desc-title">游戏说明</h2>
+        <div class="desc-content">
+            1. 操作方式：WASD/方向键控制贾宝玉移动，空格键触发对话/交互<br>
+            2. 核心玩法：探索大观园场景，与红楼人物对话，不同选择会影响角色好感度<br>
+            3. 收集系统：在场景中寻找《葬花吟》诗词碎片，解锁完整剧情<br>
+            4. 存档功能：按F5快速存档，按F9读取存档<br>
+            5. 剧情基于《红楼梦》原著改编，还原黛玉进府、葬花吟等经典名场面
+        </div>
+        <button class="close-desc-btn" id="closeDescBtn">关闭</button>
+    </div>
+    <!-- 游戏主体 -->
+    <h1 class="game-title" id="gameTitle">红楼梦RPG</h1>
+    <p class="focus-tip" id="focusTip">⚠️ 请点击游戏画面激活控制，即可正常移动</p>
+    <div class="game-container" id="gameContainer">
+        <canvas id="gameCanvas" width="960" height="600" tabindex="0"></canvas>
+
+        <!-- 地点名称悬浮提示 -->
+        <div class="location-tip" id="locationTip"></div>
+
+        <!-- 对话面板 -->
+        <div class="dialogue-box" id="dialogueBox">
+            <div class="dialogue-name" id="dialogueName"></div>
+            <div class="dialogue-content" id="dialogueContent"></div>
+            <div class="dialogue-tip" id="dialogueTip">按空格键继续</div>
+            <div class="dialogue-options" id="dialogueOptions"></div>
+        </div>
+        <!-- 左侧信息面板 -->
+        <div class="left-panel" id="leftPanel">
+            <div class="panel-title">当前任务</div>
+            <div class="panel-content" id="taskContent"></div>
+
+            <div class="panel-title">黛玉好感度</div>
+            <div class="favor-bar">
+                <div class="favor-fill" id="favorFill"></div>
+            </div>
+
+            <div class="panel-title">诗词收集</div>
+            <div class="collect-progress" id="collectProgress">0/4 碎片</div>
+        </div>
+        <!-- 右侧控制&图鉴面板 -->
+        <div class="right-panel" id="rightPanel">
+            <div class="panel-title">控制状态</div>
+            <div class="debug-item">
+                <span>W 按键：</span>
+                <span id="keyW" class="key-inactive">未按下</span>
+            </div>
+            <div class="debug-item">
+                <span>A 按键：</span>
+                <span id="keyA" class="key-inactive">未按下</span>
+            </div>
+            <div class="debug-item">
+                <span>S 按键：</span>
+                <span id="keyS" class="key-inactive">未按下</span>
+            </div>
+            <div class="debug-item">
+                <span>D 按键：</span>
+                <span id="keyD" class="key-inactive">未按下</span>
+            </div>
+            <div class="debug-item">
+                <span>移动锁定：</span>
+                <span id="moveLock" class="lock-active">已锁定</span>
+            </div>
+            <div class="control-btn-group">
+                <button class="control-btn" id="unlockBtn">解锁移动</button>
+                <button class="control-btn" id="backToCoverBtn">返回封面</button>
+            </div>
+
+            <div class="panel-title">才艺养成</div>
+            <div class="debug-item">
+                <span>诗词：</span>
+                <span id="talentPoetry">0</span>
+            </div>
+            <div class="debug-item">
+                <span>书法：</span>
+                <span id="talentCalligraphy">0</span>
+            </div>
+            <div class="debug-item">
+                <span>音乐：</span>
+                <span id="talentMusic">0</span>
+            </div>
+            <div class="debug-item">
+                <span>礼仪：</span>
+                <span id="talentEtiquette">0</span>
+            </div>
+
+            <div class="panel-title">已解锁技能</div>
+            <div class="skill-list" id="skillList">
+                <div class="location-item">○ 古琴</div>
+                <div class="location-item">○ 诗词</div>
+                <div class="location-item">○ 书法</div>
+            </div>
+
+            <div class="panel-title">已探索地点</div>
+            <div class="location-list" id="locationList"></div>
+        </div>
+    </div>
+    <div class="control-tip" id="controlTip">
+        操作说明：WASD/方向键 移动 | 空格键 对话/交互 | 走到新地点自动解锁图鉴 | F5 存档 | F9 读档 | H 隐藏面板 | M 音效开关
+    </div>
+
+    <script>
+        // 等待页面100%加载完成后执行所有代码
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('✅ 页面DOM加载完成，开始初始化游戏');
+            // ===================== 全局错误捕获 =====================
+            window.addEventListener('error', function (e) {
+                console.error('❌ 游戏错误详情：', e);
+                const errorTip = document.getElementById('errorTip');
+                if (errorTip) {
+                    errorTip.textContent = `错误：${e.message}，请按F12查看控制台详情`;
+                    errorTip.classList.add('show');
+                    setTimeout(function () { errorTip.classList.remove('show'); }, 5000);
+                }
+            });
+            // ===================== 1. 元素获取（100%校验） =====================
+            function getElement(id) {
+                const el = document.getElementById(id);
+                if (!el) console.error('❌ 缺失元素：', id);
+                else console.log('✅ 元素获取成功：', id);
+                return el;
+            }
+            // 所有元素统一获取
+            const elements = {
+                // 画布
+                canvas: getElement('gameCanvas'),
+                // 封面相关
+                coverContainer: getElement('coverContainer'),
+                startGameBtn: getElement('startGameBtn'),
+                gameDescBtn: getElement('gameDescBtn'),
+                refreshBtn: getElement('refreshBtn'),
+                // 说明弹窗
+                gameDescBox: getElement('gameDescBox'),
+                closeDescBtn: getElement('closeDescBtn'),
+                // 游戏主体
+                gameContainer: getElement('gameContainer'),
+                gameTitle: getElement('gameTitle'),
+                focusTip: getElement('focusTip'),
+                controlTip: getElement('controlTip'),
+                leftPanel: getElement('leftPanel'),
+                rightPanel: getElement('rightPanel'),
+                // 提示相关
+                locationTip: getElement('locationTip'),
+                errorTip: getElement('errorTip'),
+                // 对话相关
+                dialogueBox: getElement('dialogueBox'),
+                dialogueName: getElement('dialogueName'),
+                dialogueContent: getElement('dialogueContent'),
+                dialogueTip: getElement('dialogueTip'),
+                dialogueOptions: getElement('dialogueOptions'),
+                // 解谜相关
+                puzzleBox: getElement('puzzleBox'),
+                puzzleTitle: getElement('puzzleTitle'),
+                puzzleContent: getElement('puzzleContent'),
+                puzzleInput: getElement('puzzleInput'),
+                puzzleCancelBtn: getElement('puzzleCancelBtn'),
+                puzzleSubmitBtn: getElement('puzzleSubmitBtn'),
+                // UI面板
+                keyW: getElement('keyW'),
+                keyA: getElement('keyA'),
+                keyS: getElement('keyS'),
+                keyD: getElement('keyD'),
+                moveLock: getElement('moveLock'),
+                unlockBtn: getElement('unlockBtn'),
+                backToCoverBtn: getElement('backToCoverBtn'),
+                taskContent: getElement('taskContent'),
+                favorFill: getElement('favorFill'),
+                collectProgress: getElement('collectProgress'),
+                locationList: getElement('locationList'),
+                // 养成系统
+                talentPoetry: getElement('talentPoetry'),
+                talentCalligraphy: getElement('talentCalligraphy'),
+                talentMusic: getElement('talentMusic'),
+                talentEtiquette: getElement('talentEtiquette'),
+                skillList: getElement('skillList')
+            };
+            // 校验核心元素是否存在
+            const coreElements = ['canvas', 'startGameBtn', 'coverContainer', 'gameContainer'];
+            let isCoreReady = true;
+            coreElements.forEach(function (id) {
+                if (!elements[id]) isCoreReady = false;
+            });
+            if (!isCoreReady) {
+                alert('❌ 页面核心元素加载失败，请刷新页面重试');
+                return;
+            }
+            console.log('✅ 所有核心元素就绪');
+            // 画布上下文
+            const ctx = elements.canvas.getContext('2d');
+            if (!ctx) {
+                alert('❌ 浏览器不支持Canvas，无法启动游戏');
+                return;
+            }
+            console.log('✅ Canvas上下文初始化成功');
+            // ===================== 2. 通用工具函数 =====================
+            const utils = {
+                show: function (el) { if (el) el.classList.add('show'); },
+                hide: function (el) {
+                    if (el) {
+                        if (el.id === 'coverContainer') {
+                            el.classList.add('hide');
+                        } else {
+                            el.classList.remove('show');
+                        }
+                    }
+                },
+                showTip: function (el, text, duration) {
+                    if (!el) return;
+                    duration = duration || 2000;
+                    el.textContent = text;
+                    this.show(el);
+                    setTimeout(function () { utils.hide(el); }, duration);
+                },
+                getDistance: function (x1, y1, x2, y2) {
+                    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                },
+                clearTimer: function (timer) {
+                    if (timer) clearInterval(timer);
+                }
+            };
+            // ===================== 3. 游戏基础配置 =====================
+            const CONFIG = {
+                TILE_SIZE: 32,
+                MAP_WIDTH: 30,
+                MAP_HEIGHT: 18,
+                PLAYER_SPEED: 2.6,
+                INTERACT_DISTANCE: 80,
+                SAVE_KEY: 'hongLouMeng_save'
+            };
+            // ===================== 4. 游戏全局状态管理 =====================
+            const game = {
+                isInit: false,
+                gameStatus: 'cover',
+                isFocus: false,
+                moveLocked: true,
+                gameLoopId: null,
+                animFrame: 0, // 新增：人物动画帧计数
+                keys: { w: false, a: false, s: false, d: false },
+                player: {
+                    x: CONFIG.TILE_SIZE * 15,
+                    y: CONFIG.TILE_SIZE * 14,
+                    width: CONFIG.TILE_SIZE,
+                    height: CONFIG.TILE_SIZE * 1.4,
+                    direction: 'down'
+                },
+                currentScene: 'rongfuGate',
+                dialogue: {
+                    isActive: false,
+                    index: 0,
+                    data: null,
+                    npcId: null,
+                    typeInterval: null
+                },
+                task: {
+                    id: 1,
+                    name: '进入荣国府',
+                    desc: '穿过荣国府大门，进入前庭',
+                    done: false
+                },
+                favor: {
+                    daiyu: 50,
+                    baochai: 50,
+                    xifeng: 50
+                },
+                collection: {
+                    poemPieces: [],
+                    totalPieces: 4
+                },
+                talent: {
+                    poetry: 0,
+                    calligraphy: 0,
+                    music: 0,
+                    etiquette: 0
+                },
+                skills: {
+                    guqin: false,
+                    poetry: false,
+                    calligraphy: false
+                },
+                ending: {
+                    type: null,
+                    triggered: false
+                },
+                effects: {
+                    petals: [],
+                    candles: []
+                },
+                soundEnabled: true, // 音效开关状态
+                locations: {
+                    unlocked: [],
+                    all: [
+                        { id: 'rongfuGate', name: '荣国府大门', desc: '宁荣街北，荣国府正门' },
+                        { id: 'rongfuYard', name: '荣国府前庭', desc: '荣国府内院入口' },
+                        { id: 'qinfangPavilion', name: '沁芳亭', desc: '大观园核心景致' },
+                        { id: 'xiaoxiangGuan', name: '潇湘馆', desc: '林黛玉居所' },
+                        { id: 'yihongYuan', name: '怡红院外院', desc: '贾宝玉居所' }
+                    ]
+                },
+                puzzle: {
+                    zangHuaYinUnlocked: false,
+                    currentPuzzle: null,
+                    puzzles: {
+                        zangHuaYin: { id: 'zangHuaYin', name: '黛玉葬花', solved: false, difficulty: 1 },
+                        jinSuo: { id: 'jinSuo', name: '宝钗金锁', solved: false, difficulty: 2 },
+                        liZhang: { id: 'liZhang', name: '凤姐理账', solved: false, difficulty: 3 }
+                    }
+                },
+                reset: function () {
+                    this.isInit = false;
+                    this.moveLocked = true;
+                    this.keys = { w: false, a: false, s: false, d: false };
+                    this.player = { x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 14, width: CONFIG.TILE_SIZE, height: CONFIG.TILE_SIZE * 1.4, direction: 'down' };
+                    this.currentScene = 'rongfuGate';
+                    this.dialogue = { isActive: false, index: 0, data: null, npcId: null, typeInterval: null };
+                    this.task = { id: 1, name: '进入荣国府', desc: '穿过荣国府大门，进入前庭', done: false };
+                    this.favor = { daiyu: 50, baochai: 50, xifeng: 50 };
+                    this.collection = { poemPieces: [], totalPieces: 4 };
+                    this.talent = { poetry: 0, calligraphy: 0, music: 0, etiquette: 0 };
+                    this.skills = { guqin: false, poetry: false, calligraphy: false };
+                    this.ending = { type: null, triggered: false };
+                    this.effects = { petals: [], candles: [] };
+                    this.locations.unlocked = [];
+                    this.puzzle.zangHuaYinUnlocked = false;
+                }
+            };
+            // ===================== 5. 全场景地图定义 =====================
+            const scenes = {
+                rongfuGate: {
+                    name: '荣国府大门',
+                    map: [
+                        [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                    ],
+                    locations: [
+                        { id: 'rongfuGate', x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 1, radius: CONFIG.TILE_SIZE * 3 }
+                    ],
+                    collectibles: [],
+                    npcs: [
+                        {
+                            id: 'mending1',
+                            name: '门丁',
+                            x: CONFIG.TILE_SIZE * 9,
+                            y: CONFIG.TILE_SIZE * 2,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '门丁', content: '来者可是林姑娘带来的人？老祖宗有吩咐，荣国府内不得随意喧哗。' },
+                                { name: '贾宝玉', content: '睁开你的狗眼看看，我是谁！' },
+                                { name: '门丁', content: '哎哟！是宝二爷！小的瞎了眼，您快请进，快请进！' }
+                            ]
+                        },
+                        {
+                            id: 'sign_rongfuGate',
+                            name: '指路牌',
+                            x: CONFIG.TILE_SIZE * 15,
+                            y: CONFIG.TILE_SIZE * 5,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '指路牌', content: '当前位置：荣国府大门' },
+                                { name: '指路牌', content: '前方：荣国府前庭' },
+                                { name: '指路牌', content: '提示：金色区域为场景切换点' }
+                            ]
+                        }
+                    ],
+                    collision: [1],
+                    transition: {
+                        tile: 2,
+                        targetScene: 'rongfuYard',
+                        targetX: CONFIG.TILE_SIZE * 15,
+                        targetY: CONFIG.TILE_SIZE * 15
+                    }
+                },
+                rongfuYard: {
+                    name: '荣国府前庭',
+                    map: [
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                    ],
+                    locations: [
+                        { id: 'rongfuYard', x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 9, radius: CONFIG.TILE_SIZE * 3 }
+                    ],
+                    collectibles: [
+                        { id: 'piece2', name: '葬花吟碎片·其二', x: CONFIG.TILE_SIZE * 26, y: CONFIG.TILE_SIZE * 3, desc: '游丝软系飘春榭，落絮轻沾扑绣帘。', collected: false }
+                    ],
+                    npcs: [
+                        {
+                            id: 'xifeng',
+                            name: '王熙凤',
+                            x: CONFIG.TILE_SIZE * 10,
+                            y: CONFIG.TILE_SIZE * 6,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '王熙凤', content: '宝二爷！你可算来了！林姑娘刚到，老祖宗正念叨你呢！' },
+                                { name: '贾宝玉', content: '凤姐姐，林妹妹她怎么样了？' },
+                                { name: '王熙凤', content: '模样是真真好，就是身子弱了些，你快去潇湘馆看看她吧。' },
+                                { name: '王熙凤', content: '对了，最近府里账目有些混乱，你可愿帮我理一理？', puzzle: 'liZhang' }
+                            ]
+                        },
+                        {
+                            id: 'sign_rongfuYard',
+                            name: '指路牌',
+                            x: CONFIG.TILE_SIZE * 15,
+                            y: CONFIG.TILE_SIZE * 5,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '指路牌', content: '当前位置：荣国府前庭' },
+                                { name: '指路牌', content: '向西：荣国府大门' },
+                                { name: '指路牌', content: '向东：怡红院' },
+                                { name: '指路牌', content: '向北：沁芳亭' },
+                                { name: '指路牌', content: '提示：金色区域为场景切换点' }
+                            ]
+                        }
+                    ],
+                    collision: [1],
+                    transition: [
+                        { tile: 2, x: 6, y: 10, targetScene: 'qinfangPavilion', targetX: CONFIG.TILE_SIZE * 15, targetY: CONFIG.TILE_SIZE * 15 },
+                        { tile: 2, x: 22, y: 10, targetScene: 'yihongYuan', targetX: CONFIG.TILE_SIZE * 15, targetY: CONFIG.TILE_SIZE * 15 }
+                    ]
+                },
+                qinfangPavilion: {
+                    name: '沁芳亭',
+                    map: [
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 3, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 3, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                    ],
+                    locations: [
+                        { id: 'qinfangPavilion', x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 5, radius: CONFIG.TILE_SIZE * 4 }
+                    ],
+                    collectibles: [
+                        { id: 'piece3', name: '葬花吟碎片·其三', x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 5, desc: '闺中女儿惜春暮，愁绪满怀无释处。', collected: false }
+                    ],
+                    npcs: [
+                        {
+                            id: 'ziJuan',
+                            name: '紫鹃',
+                            x: CONFIG.TILE_SIZE * 2,
+                            y: CONFIG.TILE_SIZE * 10,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '紫鹃', content: '宝二爷，您可来了！姑娘正在潇湘馆，您快进去看看吧。' }
+                            ]
+                        },
+                        {
+                            id: 'sign_qinfangPavilion',
+                            name: '指路牌',
+                            x: CONFIG.TILE_SIZE * 15,
+                            y: CONFIG.TILE_SIZE * 9,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '指路牌', content: '当前位置：沁芳亭' },
+                                { name: '指路牌', content: '向西：潇湘馆' },
+                                { name: '指路牌', content: '向东：荣国府前庭' },
+                                { name: '指路牌', content: '提示：金色区域为场景切换点' }
+                            ]
+                        }
+                    ],
+                    collision: [1],
+                    transition: [
+                        { tile: 2, x: 6, y: 10, targetScene: 'xiaoxiangGuan', targetX: CONFIG.TILE_SIZE * 15, targetY: CONFIG.TILE_SIZE * 15 },
+                        { tile: 2, x: 22, y: 10, targetScene: 'rongfuYard', targetX: CONFIG.TILE_SIZE * 15, targetY: CONFIG.TILE_SIZE * 15 }
+                    ]
+                },
+                xiaoxiangGuan: {
+                    name: '潇湘馆',
+                    map: [
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                    ],
+                    locations: [
+                        { id: 'xiaoxiangGuan', x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 9, radius: CONFIG.TILE_SIZE * 3 }
+                    ],
+                    collectibles: [
+                        { id: 'piece4', name: '葬花吟碎片·其四', x: CONFIG.TILE_SIZE * 3, y: CONFIG.TILE_SIZE * 8, desc: '质本洁来还洁去，强于污淖陷渠沟。', collected: false }
+                    ],
+                    npcs: [
+                        {
+                            id: 'daiyu',
+                            name: '林黛玉',
+                            x: CONFIG.TILE_SIZE * 15,
+                            y: CONFIG.TILE_SIZE * 4,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '林黛玉', content: '你又来做什么？' },
+                                {
+                                    name: '贾宝玉',
+                                    content: '妹妹，我是特地来瞧你的。',
+                                    options: [
+                                        { text: '【共情安慰】妹妹这般伤怀，我看着心里也疼', nextIndex: 2 },
+                                        { text: '【理性劝解】不过是些落花，何必伤神', nextIndex: 3 },
+                                        { text: '【诗词应和】我也有同感，不如我们一起葬花', nextIndex: 4 }
+                                    ]
+                                },
+                                { name: '林黛玉', content: '（抬眼看向你，眼眶微红）原来你也懂这份心思。', favorChange: 20, talent: { poetry: 10 }, nextIndex: 5 },
+                                { name: '林黛玉', content: '（冷笑一声）我就知道，你终究是不懂我的。', favorChange: -15, nextIndex: 5 },
+                                { name: '林黛玉', content: '（眼中一亮）你也有此雅兴？那我们便一同去吧。', favorChange: 30, nextIndex: 6 },
+                                { name: '林黛玉', content: '花谢花飞花满天，红消香断有谁怜？', nextIndex: 7 },
+                                { name: '林黛玉', content: '（与你一同葬花）质本洁来还洁去，强于污淖陷渠沟。', puzzle: 'zangHuaYin', nextIndex: 7 },
+                                { name: '旁白', content: '潇湘馆剧情暂告一段落，你可继续探索大观园。' }
+                            ]
+                        },
+                        {
+                            id: 'sign_xiaoxiangGuan',
+                            name: '指路牌',
+                            x: CONFIG.TILE_SIZE * 15,
+                            y: CONFIG.TILE_SIZE * 9,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '指路牌', content: '当前位置：潇湘馆' },
+                                { name: '指路牌', content: '向东：沁芳亭' },
+                                { name: '指路牌', content: '提示：金色区域为场景切换点' }
+                            ]
+                        }
+                    ],
+                    collision: [1],
+                    transition: {
+                        tile: 2,
+                        targetScene: 'qinfangPavilion',
+                        targetX: CONFIG.TILE_SIZE * 15,
+                        targetY: CONFIG.TILE_SIZE * 15
+                    }
+                },
+                yihongYuan: {
+                    name: '怡红院外院',
+                    map: [
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                    ],
+                    locations: [
+                        { id: 'yihongYuan', x: CONFIG.TILE_SIZE * 15, y: CONFIG.TILE_SIZE * 9, radius: CONFIG.TILE_SIZE * 3 }
+                    ],
+                    collectibles: [
+                        { id: 'piece1', name: '葬花吟碎片·其一', x: CONFIG.TILE_SIZE * 23, y: CONFIG.TILE_SIZE * 3, desc: '花谢花飞花满天，红消香断有谁怜？', collected: false }
+                    ],
+                    npcs: [
+                        {
+                            id: 'xiren',
+                            name: '袭人',
+                            x: CONFIG.TILE_SIZE * 10,
+                            y: CONFIG.TILE_SIZE * 6,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '袭人', content: '宝二爷，您可回来了，快回屋歇歇吧。' }
+                            ]
+                        },
+                        {
+                            id: 'baochai',
+                            name: '薛宝钗',
+                            x: CONFIG.TILE_SIZE * 20,
+                            y: CONFIG.TILE_SIZE * 6,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '薛宝钗', content: '宝兄弟，你来了。近日可好？' },
+                                {
+                                    name: '贾宝玉',
+                                    content: '姐姐安好，我特来拜访。',
+                                    options: [
+                                        { text: '【询问金锁】姐姐的金锁可是通灵宝玉的配对？', nextIndex: 2 },
+                                        { text: '【诗词请教】姐姐的才华令人钦佩，可否指教一二？', nextIndex: 3 },
+                                        { text: '【家常问候】姐姐最近在忙些什么？', nextIndex: 4 }
+                                    ]
+                                },
+                                { name: '薛宝钗', content: '（浅笑）这金锁是癞头和尚所赠，说是要配玉的。', puzzle: 'jinSuo', favorChange: 15, nextIndex: 5 },
+                                { name: '薛宝钗', content: '（欣慰）宝兄弟过奖了，我们可以一同探讨诗词之道。', favorChange: 20, nextIndex: 5 },
+                                { name: '薛宝钗', content: '（温和）不过是些女红和家务事，倒也清闲。', favorChange: 10, nextIndex: 5 },
+                                { name: '薛宝钗', content: '时候不早了，我该回去了，改日再叙。' }
+                            ]
+                        },
+                        {
+                            id: 'sign_yihongYuan',
+                            name: '指路牌',
+                            x: CONFIG.TILE_SIZE * 15,
+                            y: CONFIG.TILE_SIZE * 9,
+                            width: CONFIG.TILE_SIZE,
+                            height: CONFIG.TILE_SIZE * 1.4,
+                            dialogue: [
+                                { name: '指路牌', content: '当前位置：怡红院' },
+                                { name: '指路牌', content: '向西：荣国府前庭' },
+                                { name: '指路牌', content: '提示：金色区域为场景切换点' }
+                            ]
+                        }
+                    ],
+                    collision: [1],
+                    transition: {
+                        tile: 2,
+                        targetScene: 'rongfuYard',
+                        targetX: CONFIG.TILE_SIZE * 15,
+                        targetY: CONFIG.TILE_SIZE * 15
+                    }
+                }
+            };
+            // ===================== 6. 核心游戏逻辑 =====================
+            // 开始游戏
+            function startGame() {
+                try {
+                    // 重置游戏状态
+                    game.reset();
+
+                    // 切换界面显示
+                    utils.hide(elements.coverContainer);
+                    utils.show(elements.gameContainer);
+                    utils.show(elements.gameTitle);
+                    utils.show(elements.focusTip);
+                    utils.show(elements.controlTip);
+                    utils.show(elements.leftPanel);
+                    utils.show(elements.rightPanel);
+
+                    // 更新游戏状态
+                    game.gameStatus = 'playing';
+
+                    // 播放背景音乐
+                    if (game.soundEnabled) {
+                        setTimeout(() => {
+                            startBGM();
+                        }, 500);
+                    }
+
+                    // 强制绘制初始画面
+                    const initScene = scenes[game.currentScene];
+                    drawMap(initScene);
+                    drawPlayer();
+                    drawNPCs(initScene);
+
+                    // 初始化游戏
+                    initGame();
+
+                    // 激活画布焦点
+                    elements.canvas.focus();
+                    game.isFocus = true;
+                    utils.showTip(elements.focusTip, '✅ 控制已激活，WASD即可移动', 2000);
+                } catch (e) {
+                    console.error('❌ 进入游戏失败：', e);
+                    alert('进入游戏失败：' + e.message);
+                }
+            }
+            // 返回封面
+            function backToCover() {
+                if (!confirm('确定要返回封面吗？')) return;
+                stopGameLoop();
+                elements.coverContainer.classList.remove('hide');
+                utils.hide(elements.gameContainer);
+                utils.hide(elements.gameTitle);
+                utils.hide(elements.focusTip);
+                utils.hide(elements.controlTip);
+                utils.hide(elements.leftPanel);
+                utils.hide(elements.rightPanel);
+                closeDialogue();
+                game.gameStatus = 'cover';
+            }
+            // 移动端性能优化
+            function optimizeForMobile() {
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    // 降低动画帧率
+                    CONFIG.PLAYER_SPEED = 2.0; // 降低移动速度
+                    // 减少粒子效果
+                    game.effects.petals = [];
+                    game.effects.candles = [];
+                }
+            }
+
+            // 游戏初始化
+            function initGame() {
+                game.isInit = true;
+                optimizeForMobile(); // 添加移动端优化
+                updateAllUI();
+                // 开场对话
+                const dialogueData = [
+                    { name: '旁白', content: '你将以贾宝玉的视角，踏入荣国府，体验红楼一梦。' },
+                    { name: '旁白', content: '操作提示：WASD/方向键移动，空格键触发对话，金色区域可切换场景。' },
+                    { name: '旁白', content: '移动端操作：滑动屏幕控制移动，点击屏幕触发对话。' }
+                ];
+                utils.clearTimer(game.dialogue.typeInterval);
+                game.dialogue = {
+                    isActive: true,
+                    index: 0,
+                    data: dialogueData,
+                    npcId: 'opening',
+                    typeInterval: null
+                };
+                updateDialogueBox();
+                // 启动游戏循环
+                startGameLoop();
+            }
+            // 游戏主循环
+            function gameLoop() {
+                if (game.gameStatus !== 'playing') return;
+                try {
+                    // 更新动画帧
+                    game.animFrame = Math.floor(Date.now() / 120) % 4;
+                    // 清空画布
+                    ctx.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+                    // 获取当前场景
+                    const currentScene = scenes[game.currentScene];
+                    // 绘制地图
+                    drawMap(currentScene);
+                    // 玩家移动
+                    handlePlayerMove();
+                    // 绘制NPC
+                    drawNPCs(currentScene);
+                    // 绘制玩家
+                    drawPlayer();
+                    // 检测地点解锁
+                    checkLocation();
+                    // 检测收集物
+                    checkCollectible();
+                    // 检测场景切换
+                    checkTransition();
+                    // 检测结局
+                    checkEnding();
+                    // 更新调试面板
+                    updateDebugPanel();
+                } catch (e) {
+                    console.error('❌ 游戏循环错误：', e);
+                }
+            }
+            // 启动/停止游戏循环
+            function startGameLoop() {
+                if (!game.gameLoopId) {
+                    game.gameLoopId = setInterval(gameLoop, 16);
+                }
+            }
+            function stopGameLoop() {
+                if (game.gameLoopId) {
+                    clearInterval(game.gameLoopId);
+                    game.gameLoopId = null;
+                }
+            }
+            // 键盘事件
+            function handleKeyDown(e) {
+                const key = e.key.toLowerCase();
+                if (key === 'w' || key === 'arrowup') game.keys.w = true;
+                if (key === 'a' || key === 'arrowleft') game.keys.a = true;
+                if (key === 's' || key === 'arrowdown') game.keys.s = true;
+                if (key === 'd' || key === 'arrowright') game.keys.d = true;
+                if (key === ' ') {
+                    e.preventDefault();
+                    handleDialogueContinue();
+                }
+                if (key === 'f5') {
+                    e.preventDefault();
+                    saveGame();
+                }
+                if (key === 'f9') {
+                    e.preventDefault();
+                    loadGame();
+                }
+                if (key === 'h') {
+                    e.preventDefault();
+                    togglePanels();
+                }
+                if (key === 'm') {
+                    e.preventDefault();
+                    toggleSound();
+                }
+            }
+            function handleKeyUp(e) {
+                const key = e.key.toLowerCase();
+                if (key === 'w' || key === 'arrowup') game.keys.w = false;
+                if (key === 'a' || key === 'arrowleft') game.keys.a = false;
+                if (key === 's' || key === 'arrowdown') game.keys.s = false;
+                if (key === 'd' || key === 'arrowright') game.keys.d = false;
+            }
+            
+            // 触摸事件
+            let touchStartX = 0;
+            let touchStartY = 0;
+            
+            function showTouchFeedback(x, y) {
+                const feedback = document.createElement('div');
+                feedback.style.position = 'absolute';
+                feedback.style.left = x + 'px';
+                feedback.style.top = y + 'px';
+                feedback.style.width = '40px';
+                feedback.style.height = '40px';
+                feedback.style.borderRadius = '50%';
+                feedback.style.background = 'rgba(212, 175, 55, 0.3)';
+                feedback.style.transform = 'translate(-50%, -50%)';
+                feedback.style.pointerEvents = 'none';
+                feedback.style.zIndex = '999';
+                feedback.style.animation = 'touchFeedback 0.5s ease-out';
+                
+                document.body.appendChild(feedback);
+                
+                setTimeout(() => {
+                    feedback.remove();
+                }, 500);
+            }
+            
+            elements.canvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                showTouchFeedback(touch.clientX, touch.clientY);
+            });
+            
+            elements.canvas.addEventListener('touchmove', function(e) {
+                e.preventDefault(); // 防止页面滚动
+                const touch = e.touches[0];
+                const touchEndX = touch.clientX;
+                const touchEndY = touch.clientY;
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+                
+                // 根据滑动方向控制角色移动
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    // 水平滑动
+                    if (diffX > 20) {
+                        game.keys.d = true;
+                        game.keys.a = false;
+                        game.player.direction = 'right';
+                    } else if (diffX < -20) {
+                        game.keys.a = true;
+                        game.keys.d = false;
+                        game.player.direction = 'left';
+                    }
+                } else {
+                    // 垂直滑动
+                    if (diffY > 20) {
+                        game.keys.s = true;
+                        game.keys.w = false;
+                        game.player.direction = 'down';
+                    } else if (diffY < -20) {
+                        game.keys.w = true;
+                        game.keys.s = false;
+                        game.player.direction = 'up';
+                    }
+                }
+            });
+            
+            // 双击检测
+            let lastTapTime = 0;
+            const DOUBLE_TAP_DELAY = 300;
+            
+            elements.canvas.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                // 重置按键状态
+                game.keys.w = false;
+                game.keys.a = false;
+                game.keys.s = false;
+                game.keys.d = false;
+                
+                // 检测双击
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTapTime;
+                
+                if (tapLength < DOUBLE_TAP_DELAY && tapLength > 0) {
+                    // 双击事件
+                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        // 移动端双击隐藏/显示面板
+                        const leftPanel = elements.leftPanel;
+                        const rightPanel = elements.rightPanel;
+                        const isLeftVisible = leftPanel.classList.contains('show');
+                        const isRightVisible = rightPanel.classList.contains('show');
+
+                        if (isLeftVisible || isRightVisible) {
+                            utils.hide(leftPanel);
+                            utils.hide(rightPanel);
+                            utils.showTip(elements.focusTip, '已隐藏面板，双击屏幕恢复', 2000);
+                        } else {
+                            utils.show(leftPanel);
+                            utils.show(rightPanel);
+                            utils.showTip(elements.focusTip, '已显示面板', 2000);
+                        }
+                    }
+                } else {
+                    // 单击事件
+                    // 触摸点击触发对话
+                    if (!game.dialogue.isActive) {
+                        handleDialogueContinue();
+                    }
+                }
+                
+                lastTapTime = currentTime;
+            });
+            // 切换面板显示/隐藏
+            function togglePanels() {
+                const leftPanel = elements.leftPanel;
+                const rightPanel = elements.rightPanel;
+                const isLeftVisible = leftPanel.classList.contains('show');
+                const isRightVisible = rightPanel.classList.contains('show');
+
+                if (isLeftVisible && isRightVisible) {
+                    utils.hide(leftPanel);
+                    utils.hide(rightPanel);
+                    utils.showTip(elements.focusTip, '已隐藏左右面板，按H键恢复', 2000);
+                } else {
+                    utils.show(leftPanel);
+                    utils.show(rightPanel);
+                    utils.showTip(elements.focusTip, '已显示左右面板', 2000);
+                }
+            }
+            // 音效控制（使用 Web Audio API）
+            let audioContext = null;
+            let bgmOscillator = null;
+            let bgmGainNode = null;
+
+            function initAudioContext() {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                return audioContext;
+            }
+
+            function playDoorSound() {
+                if (!game.soundEnabled) return;
+                try {
+                    const ctx = initAudioContext();
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+
+                    oscillator.frequency.setValueAtTime(80, ctx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
+
+                    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.2);
+                } catch (e) {
+                    console.log('音效播放失败:', e);
+                }
+            }
+
+            function playCollectSound() {
+                if (!game.soundEnabled) return;
+                try {
+                    const ctx = initAudioContext();
+
+                    const oscillator1 = ctx.createOscillator();
+                    const oscillator2 = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+
+                    oscillator1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                    oscillator2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+
+                    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+                    oscillator1.start(ctx.currentTime);
+                    oscillator2.start(ctx.currentTime);
+                    oscillator1.stop(ctx.currentTime + 0.3);
+                    oscillator2.stop(ctx.currentTime + 0.3);
+                } catch (e) {
+                    console.log('音效播放失败:', e);
+                }
+            }
+
+            // 全局音频对象
+            let bgmAudio = null;
+
+            function startBGM() {
+                if (!game.soundEnabled) return;
+                try {
+                    // 创建音频元素
+                    if (!bgmAudio) {
+                        bgmAudio = new Audio('游戏背景音乐.mp3');
+                        bgmAudio.loop = true; // 设置循环播放
+                        bgmAudio.volume = 0.3; // 设置音量
+                    }
+                    
+                    // 播放音乐
+                    if (bgmAudio.paused) {
+                        bgmAudio.play().catch(function(e) {
+                            console.log('音频播放失败:', e);
+                        });
+                    }
+                } catch (e) {
+                    console.log('背景音乐播放失败:', e);
+                }
+            }
+
+            function stopBGM() {
+                if (bgmAudio) {
+                    bgmAudio.pause();
+                }
+            }
+
+            function toggleSound() {
+                game.soundEnabled = !game.soundEnabled;
+                if (game.soundEnabled) {
+                    startBGM();
+                    utils.showTip(elements.focusTip, '已开启音效', 2000);
+                } else {
+                    stopBGM();
+                    utils.showTip(elements.focusTip, '已关闭音效', 2000);
+                }
+            }
+            // 玩家移动
+            function handlePlayerMove() {
+                if (!game.isFocus) return;
+                let newX = game.player.x;
+                let newY = game.player.y;
+                if (game.keys.w) { newY -= CONFIG.PLAYER_SPEED; game.player.direction = 'up'; }
+                if (game.keys.s) { newY += CONFIG.PLAYER_SPEED; game.player.direction = 'down'; }
+                if (game.keys.a) { newX -= CONFIG.PLAYER_SPEED; game.player.direction = 'left'; }
+                if (game.keys.d) { newX += CONFIG.PLAYER_SPEED; game.player.direction = 'right'; }
+                if (!checkCollision(newX, newY)) {
+                    game.player.x = newX;
+                    game.player.y = newY;
+                }
+            }
+            // 碰撞检测
+            function checkCollision(newX, newY) {
+                const scene = scenes[game.currentScene];
+                const playerBox = {
+                    x: newX + 8,
+                    y: newY + game.player.height - 8,
+                    w: game.player.width - 16,
+                    h: 8
+                };
+
+                // 边界检查
+                if (playerBox.x < 0 || playerBox.x + playerBox.w > CONFIG.TILE_SIZE * CONFIG.MAP_WIDTH ||
+                    playerBox.y < 0 || playerBox.y + playerBox.h > CONFIG.TILE_SIZE * CONFIG.MAP_HEIGHT) {
+                    return true;
+                }
+
+                // 计算碰撞盒所在的tiles
+                const colLeft = Math.floor(playerBox.x / CONFIG.TILE_SIZE);
+                const colRight = Math.floor((playerBox.x + playerBox.w) / CONFIG.TILE_SIZE);
+                const rowTop = Math.floor(playerBox.y / CONFIG.TILE_SIZE);
+                const rowBottom = Math.floor((playerBox.y + playerBox.h) / CONFIG.TILE_SIZE);
+
+                // 检查碰撞tiles
+                for (let row = rowTop; row <= rowBottom; row++) {
+                    for (let col = colLeft; col <= colRight; col++) {
+                        if (row >= 0 && row < scene.map.length && col >= 0 && col < scene.map[row].length) {
+                            const tile = scene.map[row][col];
+                            if (scene.collision.includes(tile)) {
+                                return true;
+                            }
+                        } else {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            // 场景切换
+            function checkTransition() {
+                const scene = scenes[game.currentScene];
+                if (!scene.transition) return;
+                const transitions = Array.isArray(scene.transition) ? scene.transition : [scene.transition];
+                transitions.forEach(function (trans) {
+                    const col = Math.floor((game.player.x + game.player.width / 2) / CONFIG.TILE_SIZE);
+                    const row = Math.floor((game.player.y + game.player.height / 2) / CONFIG.TILE_SIZE);
+                    const isMatch = (trans.x !== undefined && trans.y !== undefined)
+                        ? (col === trans.x && row === trans.y)
+                        : (scene.map[row][col] === trans.tile);
+                    if (isMatch) {
+                        game.currentScene = trans.targetScene;
+                        game.player.x = trans.targetX;
+                        game.player.y = trans.targetY;
+                        playDoorSound();
+                        utils.showTip(elements.locationTip, scenes[trans.targetScene].name, 2000);
+                    }
+                });
+            }
+            // 地点解锁
+            function checkLocation() {
+                const scene = scenes[game.currentScene];
+                if (!scene.locations) return;
+                scene.locations.forEach(function (location) {
+                    const distance = utils.getDistance(
+                        game.player.x + game.player.width / 2,
+                        game.player.y + game.player.height / 2,
+                        location.x, location.y
+                    );
+                    if (distance < location.radius && !game.locations.unlocked.includes(location.id)) {
+                        game.locations.unlocked.push(location.id);
+                        const locationData = game.locations.all.find(function (l) { return l.id === location.id; });
+                        utils.showTip(elements.locationTip, locationData.name, 2000);
+                        updateLocationList();
+                        // 任务更新
+                        if (location.id === 'rongfuYard' && game.task.id === 1) {
+                            game.task = { id: 2, name: '前往沁芳亭', desc: '穿过前庭，前往大观园沁芳亭', done: false };
+                            updateTaskPanel();
+                            utils.showTip(elements.locationTip, '新任务：前往沁芳亭', 2000);
+                        }
+                        if (location.id === 'qinfangPavilion' && game.task.id === 2) {
+                            game.task = { id: 3, name: '与林黛玉对话', desc: '在潇湘馆找到林黛玉', done: false };
+                            updateTaskPanel();
+                            utils.showTip(elements.locationTip, '新任务：与林黛玉对话', 2000);
+                        }
+                    }
+                });
+            }
+            // 收集物检测
+            function checkCollectible() {
+                // 只有在任务6时才能拾取碎片
+                if (game.task.id !== 6) return;
+                
+                const scene = scenes[game.currentScene];
+                if (!scene.collectibles) return;
+                scene.collectibles.forEach(function (item) {
+                    if (item.collected) return;
+                    const distance = utils.getDistance(
+                        game.player.x + game.player.width / 2,
+                        game.player.y + game.player.height / 2,
+                        item.x, item.y
+                    );
+                    if (distance < CONFIG.TILE_SIZE * 1.5) {
+                        item.collected = true;
+                        game.collection.poemPieces.push(item.id);
+                        playCollectSound();
+                        utils.showTip(elements.locationTip, `获得：${item.name}`, 1500);
+                        updateCollectProgress();
+
+                        // 检查是否收集完所有碎片
+                        if (game.collection.poemPieces.length >= game.collection.totalPieces) {
+                            // 标记任务6为完成
+                            game.task.done = true;
+                            updateTaskPanel();
+                            // 触发最终任务
+                            setTimeout(function () {
+                                game.task = { id: 7, name: '重游潇湘馆', desc: '与林黛玉分享收集到的诗词碎片', done: false };
+                                updateTaskPanel();
+                                utils.showTip(elements.locationTip, '新任务：重游潇湘馆', 2000);
+                                showDialogue([{ name: '旁白', content: '你已收集齐《葬花吟》全部碎片，解锁了完整诗词！' }], 'system');
+                            }, 1000);
+                        }
+                    }
+                });
+            }
+            // 获取可交互NPC
+            function getInteractNPC() {
+                const scene = scenes[game.currentScene];
+                if (!scene.npcs) return null;
+                for (let i = 0; i < scene.npcs.length; i++) {
+                    const npc = scene.npcs[i];
+                    const distance = utils.getDistance(
+                        game.player.x + game.player.width / 2,
+                        game.player.y + game.player.height / 2,
+                        npc.x + npc.width / 2,
+                        npc.y + npc.height / 2
+                    );
+                    if (distance < CONFIG.INTERACT_DISTANCE) return npc;
+                }
+                return null;
+            }
+            // 对话系统
+            function showDialogue(dialogue, npcId) {
+                npcId = npcId || null;
+                if (game.dialogue.isActive && game.dialogue.npcId === npcId) return;
+                utils.clearTimer(game.dialogue.typeInterval);
+                game.dialogue = {
+                    isActive: true,
+                    index: 0,
+                    data: dialogue,
+                    npcId: npcId,
+                    typeInterval: null
+                };
+                updateDialogueBox();
+            }
+            // 对话继续
+            function handleDialogueContinue() {
+                if (!game.dialogue.isActive) {
+                    const npc = getInteractNPC();
+                    if (npc) {
+                        // 为任务7（重游潇湘馆）设置特殊对话
+                        if (npc.id === 'daiyu' && game.task.id === 7) {
+                            const specialDialogue = [
+                                { name: '林黛玉', content: '你又来了？这次可是有什么事？' },
+                                { name: '贾宝玉', content: '妹妹，我收集到了所有的葬花吟碎片！' },
+                                { name: '林黛玉', content: '（惊讶）你竟真的找到了？快让我看看。' },
+                                { name: '贾宝玉', content: '花谢花飞花满天，红消香断有谁怜？游丝软系飘春榭，落絮轻沾扑绣帘。闺中女儿惜春暮，愁绪满怀无释处。质本洁来还洁去，强于污淖陷渠沟。' },
+                                { name: '林黛玉', content: '（眼眶湿润）这是我作的葬花吟，你竟能收集齐全...' },
+                                { name: '林黛玉', content: '（微微一笑）谢谢你，宝兄弟。你是懂我的。' },
+                                { name: '旁白', content: '林黛玉对你的好感度大幅提升，你们的关系更加亲密了。' }
+                            ];
+                            showDialogue(specialDialogue, npc.id);
+                        } else {
+                            showDialogue(npc.dialogue, npc.id);
+                        }
+                    }
+                    return;
+                }
+                const dialogue = game.dialogue;
+                const currentLine = dialogue.data[dialogue.index];
+                if (currentLine.options) return;
+                utils.clearTimer(dialogue.typeInterval);
+                if (dialogue.index >= dialogue.data.length - 1) {
+                    closeDialogue();
+                    if (dialogue.npcId === 'daiyu' && game.task.id === 3) {
+                        game.task.done = true;
+                        updateTaskPanel();
+                        // 触发后续任务
+                        setTimeout(function () {
+                            game.task = { id: 4, name: '寻找薛宝钗', desc: '前往怡红院与薛宝钗对话', done: false };
+                            updateTaskPanel();
+                            utils.showTip(elements.locationTip, '新任务：寻找薛宝钗', 2000);
+                        }, 1000);
+                    }
+                    if (dialogue.npcId === 'baochai' && game.task.id === 4) {
+                        game.task.done = true;
+                        updateTaskPanel();
+                        // 触发后续任务
+                        setTimeout(function () {
+                            game.task = { id: 5, name: '帮助凤姐理账', desc: '返回荣国府前庭与王熙凤对话', done: false };
+                            updateTaskPanel();
+                            utils.showTip(elements.locationTip, '新任务：帮助凤姐理账', 2000);
+                        }, 1000);
+                    }
+                    if (dialogue.npcId === 'xifeng' && game.task.id === 5) {
+                        game.task.done = true;
+                        updateTaskPanel();
+                        // 触发后续任务
+                        setTimeout(function () {
+                            game.task = { id: 6, name: '收集诗词碎片', desc: '在大观园中寻找葬花吟诗词碎片', done: false };
+                            updateTaskPanel();
+                            utils.showTip(elements.locationTip, '新任务：收集诗词碎片', 2000);
+                        }, 1000);
+                    }
+                    if (dialogue.npcId === 'daiyu' && game.task.id === 7) {
+                        game.task.done = true;
+                        updateTaskPanel();
+                        // 提升林黛玉好感度
+                        game.favor.daiyu = Math.min(100, game.favor.daiyu + 30);
+                        updateFavorBar();
+                        // 触发游戏结局
+                        setTimeout(function () {
+                            utils.showTip(elements.locationTip, '恭喜！完成所有任务，游戏圆满结束', 3000);
+                            // 显示结局画面
+                            setTimeout(function () {
+                                const endingDialogue = [
+                                    { name: '旁白', content: '你成功完成了所有任务，与林黛玉的关系达到了顶点。' },
+                                    { name: '旁白', content: '在大观园的这段时光，让你深刻体会到了红楼梦中的情感纠葛。' },
+                                    { name: '旁白', content: '也许这就是红楼梦的魅力所在 - 繁华过后，终成一梦。' },
+                                    { name: '旁白', content: '游戏圆满结束，感谢您的参与。' }
+                                ];
+                                showDialogue(endingDialogue, 'ending');
+                            }, 2000);
+                        }, 1000);
+                    }
+                    return;
+                }
+                dialogue.index = currentLine.nextIndex || (dialogue.index + 1);
+                updateDialogueBox();
+            }
+            // 更新对话面板
+            function updateDialogueBox() {
+                const dialogue = game.dialogue;
+                const line = dialogue.data[dialogue.index];
+                elements.dialogueContent.textContent = '';
+                elements.dialogueOptions.innerHTML = '';
+                utils.show(elements.dialogueTip);
+                utils.show(elements.dialogueBox);
+                elements.dialogueName.textContent = line.name;
+                // 好感度变化
+                if (line.favorChange) {
+                    game.favor.daiyu = Math.max(0, Math.min(100, game.favor.daiyu + line.favorChange));
+                    updateFavorBar();
+                }
+                // 才艺值变化
+                if (line.talent) {
+                    for (const [key, value] of Object.entries(line.talent)) {
+                        if (game.talent[key] !== undefined) {
+                            game.talent[key] = Math.max(0, game.talent[key] + value);
+                        }
+                    }
+                    updateTalentPanel();
+                }
+                // 打字机效果
+                let textIndex = 0;
+                const text = line.content;
+                utils.clearTimer(dialogue.typeInterval);
+                dialogue.typeInterval = setInterval(function () {
+                    if (textIndex < text.length) {
+                        elements.dialogueContent.textContent += text[textIndex];
+                        textIndex++;
+                    } else {
+                        clearInterval(dialogue.typeInterval);
+                        if (line.options) {
+                            utils.hide(elements.dialogueTip);
+                            line.options.forEach(function (option) {
+                                const btn = document.createElement('button');
+                                btn.className = 'option-btn';
+                                btn.textContent = option.text;
+                                btn.onclick = function () {
+                                    game.dialogue.index = option.nextIndex;
+                                    updateDialogueBox();
+                                };
+                                elements.dialogueOptions.appendChild(btn);
+                            });
+                        } else if (line.puzzle) {
+                            showPuzzle(line.puzzle);
+                        }
+                    }
+                }, 50);
+            }
+            // 关闭对话
+            function closeDialogue() {
+                utils.clearTimer(game.dialogue.typeInterval);
+                game.dialogue = { isActive: false, index: 0, data: null, npcId: null, typeInterval: null };
+                utils.hide(elements.dialogueBox);
+            }
+            // 显示解谜界面
+            function showPuzzle(puzzleId) {
+                game.puzzle.currentPuzzle = puzzleId;
+                const puzzle = game.puzzle.puzzles[puzzleId];
+                if (puzzle.solved) {
+                    showError('该谜题已解决');
+                    return;
+                }
+
+                elements.puzzleTitle.textContent = puzzle.name;
+
+                switch (puzzleId) {
+                    case 'zangHuaYin':
+                        elements.puzzleContent.innerHTML = '黛玉葬花时吟诵《葬花吟》，其中有一句：<br><br>"花谢花飞花满天，红消香断有谁怜？"<br><br>请补全下一句：';
+                        break;
+                    case 'jinSuo':
+                        elements.puzzleContent.innerHTML = '宝钗的金锁上刻有八字吉谶：<br><br>"不离不弃，芳龄永继"<br><br>请输入通灵宝玉上的对应刻字：';
+                        break;
+                    case 'liZhang':
+                        elements.puzzleContent.innerHTML = '凤姐理账时发现贾府上月支出：<br><br>绸缎：120两<br>食材：80两<br>仆人月钱：50两<br>其他：30两<br><br>请计算总支出：';
+                        break;
+                }
+
+                elements.puzzleInput.value = '';
+                utils.show(elements.puzzleBox);
+                elements.puzzleInput.focus();
+            }
+            // 提交解谜答案
+            function submitPuzzle() {
+                const puzzleId = game.puzzle.currentPuzzle;
+                if (!puzzleId) return;
+
+                const answer = elements.puzzleInput.value.trim();
+                let isCorrect = false;
+
+                switch (puzzleId) {
+                    case 'zangHuaYin':
+                        isCorrect = answer === '游丝软系飘春榭，落絮轻沾扑绣帘' || answer === '游丝软系飘春榭' || answer === '落絮轻沾扑绣帘';
+                        break;
+                    case 'jinSuo':
+                        isCorrect = answer === '莫失莫忘，仙寿恒昌';
+                        break;
+                    case 'liZhang':
+                        isCorrect = answer === '280' || answer === '280两';
+                        break;
+                }
+
+                if (isCorrect) {
+                    game.puzzle.puzzles[puzzleId].solved = true;
+                    showError('解谜成功！', 'success');
+                    closePuzzle();
+                } else {
+                    showError('答案错误，请重试');
+                }
+            }
+            // 关闭解谜界面
+            function closePuzzle() {
+                game.puzzle.currentPuzzle = null;
+                utils.hide(elements.puzzleBox);
+            }
+            // 显示错误提示
+            function showError(message, type = 'error') {
+                elements.errorTip.textContent = message;
+                elements.errorTip.className = type === 'success' ? 'error-tip show' : 'error-tip show';
+                elements.errorTip.style.background = type === 'success' ? '#4CAF50' : '#ff0000';
+                setTimeout(() => {
+                    utils.hide(elements.errorTip);
+                }, 3000);
+            }
+            // 检测结局
+            function checkEnding() {
+                if (game.ending.triggered) return;
+
+                // 黛玉结局
+                if (game.favor.daiyu > 80 && game.talent.poetry > 50 && game.puzzle.puzzles.zangHuaYin.solved) {
+                    triggerEnding('daiyu');
+                }
+                // 宝钗结局
+                else if (game.favor.baochai > 80 && game.talent.etiquette > 50 && game.puzzle.puzzles.jinSuo.solved) {
+                    triggerEnding('baochai');
+                }
+                // 家族振兴结局
+                else if (game.puzzle.puzzles.zangHuaYin.solved && game.puzzle.puzzles.jinSuo.solved && game.puzzle.puzzles.liZhang.solved) {
+                    const totalTalent = game.talent.poetry + game.talent.calligraphy + game.talent.music + game.talent.etiquette;
+                    if (totalTalent > 150) {
+                        triggerEnding('family');
+                    }
+                }
+            }
+            // 触发结局
+            function triggerEnding(endingType) {
+                game.ending.type = endingType;
+                game.ending.triggered = true;
+
+                let endingDialogue = [];
+                switch (endingType) {
+                    case 'daiyu':
+                        endingDialogue = [
+                            { name: '旁白', content: '你与黛玉心意相通，共同度过了许多美好的时光。' },
+                            { name: '林黛玉', content: '宝玉，有你在身边，我便不再孤单。' },
+                            { name: '贾宝玉', content: '妹妹，我会一直陪伴在你身边，直到永远。' },
+                            { name: '旁白', content: '最终，你与黛玉结为连理，过上了幸福的生活。这便是你与林黛玉的结局。' }
+                        ];
+                        break;
+                    case 'baochai':
+                        endingDialogue = [
+                            { name: '旁白', content: '你与宝钗相敬如宾，成为了荣国府的支柱。' },
+                            { name: '薛宝钗', content: '宝兄弟，能与你共度一生，是我最大的幸福。' },
+                            { name: '贾宝玉', content: '姐姐，我会好好待你，不让你受半点委屈。' },
+                            { name: '旁白', content: '最终，你与宝钗喜结良缘，成为了荣国府的当家人。这便是你与薛宝钗的结局。' }
+                        ];
+                        break;
+                    case 'family':
+                        endingDialogue = [
+                            { name: '旁白', content: '你凭借自己的才华和智慧，振兴了荣国府。' },
+                            { name: '王熙凤', content: '宝二爷，你真是咱们荣国府的骄傲！' },
+                            { name: '贾宝玉', content: '这都是大家共同努力的结果。' },
+                            { name: '旁白', content: '最终，你成为了荣国府的当家人，带领家族走向了繁荣。这便是家族振兴的结局。' }
+                        ];
+                        break;
+                }
+
+                showDialogue(endingDialogue, 'ending');
+            }
+            // 存档读档
+            function saveGame() {
+                try {
+                    const saveData = {
+                        player: game.player,
+                        currentScene: game.currentScene,
+                        task: game.task,
+                        favor: game.favor,
+                        collection: game.collection,
+                        locations: game.locations,
+                        puzzle: game.puzzle,
+                        scenes: scenes
+                    };
+                    localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(saveData));
+                    utils.showTip(elements.focusTip, '✅ 游戏存档成功', 2000);
+                } catch (e) {
+                    utils.showTip(elements.errorTip, '❌ 存档失败：' + e.message, 3000);
+                }
+            }
+            function loadGame() {
+                try {
+                    const saveData = JSON.parse(localStorage.getItem(CONFIG.SAVE_KEY));
+                    if (!saveData) {
+                        utils.showTip(elements.focusTip, '⚠️ 未找到存档', 2000);
+                        return;
+                    }
+                    Object.assign(game, saveData);
+                    Object.assign(scenes, saveData.scenes);
+                    updateAllUI();
+                    utils.showTip(elements.focusTip, '✅ 游戏读档成功', 2000);
+                } catch (e) {
+                    utils.showTip(elements.errorTip, '❌ 读档失败：' + e.message, 3000);
+                }
+            }
+
+            // ===================== 7. 美化版地图绘制函数（核心修改） =====================
+            function drawMap(scene) {
+                const map = scene.map;
+                const TILE_SIZE = CONFIG.TILE_SIZE;
+                // 预定义渐变，提升性能
+                const groundGradient = ctx.createLinearGradient(0, 0, 0, TILE_SIZE);
+                groundGradient.addColorStop(0, '#47382e');
+                groundGradient.addColorStop(1, '#3a2f28');
+
+                const wallGradient = ctx.createLinearGradient(0, 0, 0, TILE_SIZE);
+                wallGradient.addColorStop(0, '#703522');
+                wallGradient.addColorStop(0.8, '#5a2a1a');
+                wallGradient.addColorStop(1, '#3a1a0a');
+
+                const waterGradient = ctx.createLinearGradient(0, 0, 0, TILE_SIZE);
+                waterGradient.addColorStop(0, '#334a77');
+                waterGradient.addColorStop(1, '#25385a');
+
+                // 先绘制全图底层地面，避免镂空
+                ctx.fillStyle = groundGradient;
+                ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+
+                for (let row = 0; row < map.length; row++) {
+                    for (let col = 0; col < map[row].length; col++) {
+                        const tile = map[row][col];
+                        const x = col * TILE_SIZE;
+                        const y = row * TILE_SIZE;
+                        const seed = (row * 31 + col * 17) % 100; // 固定随机种子，避免画面闪烁
+
+                        switch (tile) {
+                            // 0号：青石板主地面
+                            case 0:
+                                // 石板底色
+                                ctx.fillStyle = groundGradient;
+                                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                                // 石板缝隙
+                                ctx.strokeStyle = '#2a201a';
+                                ctx.lineWidth = 1;
+                                ctx.strokeRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+                                // 随机石板纹理
+                                if (seed < 25) {
+                                    ctx.fillStyle = '#4a3a30';
+                                    ctx.fillRect(x + 4, y + 4, TILE_SIZE - 8, 2);
+                                }
+                                if (seed > 75) {
+                                    ctx.fillStyle = '#4a3a30';
+                                    ctx.fillRect(x + 4, y + TILE_SIZE - 6, TILE_SIZE - 8, 2);
+                                }
+                                // 地面阴影
+                                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                                ctx.fillRect(x, y + TILE_SIZE - 2, TILE_SIZE, 2);
+                                break;
+
+                            // 1号：红墙黛瓦墙体（碰撞用）
+                            case 1:
+                                // 墙体主体
+                                ctx.fillStyle = wallGradient;
+                                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                                // 墙体描边
+                                ctx.strokeStyle = '#2d150d';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                                // 黛瓦顶
+                                ctx.fillStyle = '#1a100a';
+                                ctx.fillRect(x, y, TILE_SIZE, 8);
+                                // 瓦当细节
+                                ctx.fillStyle = '#d4af37';
+                                ctx.beginPath();
+                                ctx.arc(x + TILE_SIZE / 2, y + 4, 2, 0, Math.PI * 2);
+                                ctx.fill();
+                                // 墙钉
+                                ctx.fillStyle = '#d4af37';
+                                ctx.beginPath();
+                                ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 2, 0, Math.PI * 2);
+                                ctx.fill();
+                                // 墙体阴影
+                                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                                ctx.fillRect(x, y + TILE_SIZE - 3, TILE_SIZE, 3);
+                                break;
+
+                            // 2号：金色传送门（场景切换）
+                            case 2:
+                                // 发光底色
+                                const glowGradient = ctx.createRadialGradient(
+                                    x + TILE_SIZE / 2, y + TILE_SIZE / 2, 0,
+                                    x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE / 2
+                                );
+                                glowGradient.addColorStop(0, 'rgba(248,224,142,0.6)');
+                                glowGradient.addColorStop(1, 'rgba(212,175,55,0.2)');
+                                ctx.fillStyle = glowGradient;
+                                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                                // 边框
+                                ctx.strokeStyle = '#f8e08e';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(x + 3, y + 3, TILE_SIZE - 6, TILE_SIZE - 6);
+                                // 门环装饰
+                                ctx.fillStyle = '#d4af37';
+                                ctx.beginPath();
+                                ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 5, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 8, 0, Math.PI * 2);
+                                ctx.stroke();
+                                break;
+
+                            // 3号：交互点（NPC/指路牌）
+                            case 3:
+                                ctx.fillStyle = '#9370db';
+                                ctx.globalAlpha = 0.15;
+                                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                                ctx.globalAlpha = 1;
+                                // 虚线边框
+                                ctx.strokeStyle = '#7a58c1';
+                                ctx.lineWidth = 1;
+                                ctx.setLineDash([4, 2]);
+                                ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                                ctx.setLineDash([]);
+                                break;
+
+                            // 4号：收集物（诗词碎片）
+                            case 4:
+                                // 发光外圈
+                                const collectGlow = ctx.createRadialGradient(
+                                    x + TILE_SIZE / 2, y + TILE_SIZE / 2, 0,
+                                    x + TILE_SIZE / 2, y + TILE_SIZE / 2, 10
+                                );
+                                collectGlow.addColorStop(0, '#fff');
+                                collectGlow.addColorStop(1, 'rgba(255,215,0,0)');
+                                ctx.fillStyle = collectGlow;
+                                ctx.beginPath();
+                                ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 10, 0, Math.PI * 2);
+                                ctx.fill();
+                                // 核心
+                                ctx.fillStyle = '#ffd700';
+                                ctx.beginPath();
+                                ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 6, 0, Math.PI * 2);
+                                ctx.fill();
+                                // 书卷细节
+                                ctx.fillStyle = '#8b4513';
+                                ctx.fillRect(x + TILE_SIZE / 2 - 4, y + TILE_SIZE / 2 - 2, 8, 4);
+                                break;
+
+                            // 5号：潇湘馆竹林/园林绿植
+                            case 5:
+                                // 土地底色
+                                ctx.fillStyle = '#3a4a28';
+                                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                                // 竹竿
+                                ctx.fillStyle = '#4a6a38';
+                                for (let i = 0; i < 4; i++) {
+                                    const bambooX = x + 3 + i * 6;
+                                    ctx.fillRect(bambooX, y + 2, 2, TILE_SIZE - 4);
+                                    // 竹节
+                                    ctx.fillStyle = '#3a5a28';
+                                    ctx.fillRect(bambooX - 1, y + 8 + i * 3, 4, 2);
+                                    ctx.fillRect(bambooX - 1, y + 16 + i * 2, 4, 2);
+                                    // 竹叶
+                                    ctx.fillStyle = '#5a7a48';
+                                    ctx.fillRect(bambooX - 3, y + 6 + i * 3, 6, 2);
+                                    ctx.fillRect(bambooX - 3, y + 12 + i * 2, 6, 2);
+                                }
+                                break;
+
+                            // 6号：沁芳亭动态水面
+                            case 6:
+                                // 水底色
+                                ctx.fillStyle = waterGradient;
+                                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                                // 动态波纹
+                                const waveOffset = (Date.now() / 500 + seed) % 4;
+                                ctx.strokeStyle = '#3d5a8a';
+                                ctx.lineWidth = 1;
+                                ctx.globalAlpha = 0.7;
+                                // 三层波纹
+                                ctx.beginPath();
+                                ctx.moveTo(x, y + 6 + waveOffset);
+                                ctx.quadraticCurveTo(x + TILE_SIZE / 2, y + 3 + waveOffset, x + TILE_SIZE, y + 6 + waveOffset);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(x, y + 16 + waveOffset);
+                                ctx.quadraticCurveTo(x + TILE_SIZE / 2, y + 13 + waveOffset, x + TILE_SIZE, y + 16 + waveOffset);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(x, y + 26 + waveOffset);
+                                ctx.quadraticCurveTo(x + TILE_SIZE / 2, y + 23 + waveOffset, x + TILE_SIZE, y + 26 + waveOffset);
+                                ctx.stroke();
+                                // 水面高光
+                                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                                ctx.fillRect(x, y, TILE_SIZE, 4);
+                                ctx.globalAlpha = 1;
+                                break;
+                        }
+                    }
+                }
+
+                // 绘制动态特效
+                drawEffects();
+
+                // 绘制收集物（诗词碎片）
+                if (scene.collectibles && game.task.id === 6) {
+                    scene.collectibles.forEach(function (item) {
+                        if (!item.collected) {
+                            const TILE_SIZE = CONFIG.TILE_SIZE;
+                            // 绘制碎片图标
+                            ctx.save();
+                            ctx.fillStyle = '#ffd700';
+                            ctx.beginPath();
+                            ctx.arc(item.x + TILE_SIZE / 2, item.y + TILE_SIZE / 2, 8, 0, Math.PI * 2);
+                            ctx.fill();
+                            // 绘制闪烁效果
+                            const pulse = Math.sin(Date.now() / 300) * 0.5 + 0.5;
+                            ctx.globalAlpha = 0.5 + pulse * 0.3;
+                            ctx.fillStyle = '#ffffff';
+                            ctx.beginPath();
+                            ctx.arc(item.x + TILE_SIZE / 2, item.y + TILE_SIZE / 2, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.restore();
+                        }
+                    });
+                }
+            }
+
+            // ===================== 8. 美化版人物绘制函数（核心修改） =====================
+            function drawCharacter(x, y, direction, color, name) {
+                const TILE_SIZE = CONFIG.TILE_SIZE;
+                const centerX = x + TILE_SIZE / 2;
+                const animOffset = game.animFrame % 2; // 走路动画偏移
+
+                // 红楼梦角色专属造型配置
+                const charConfig = {
+                    '贾宝玉': {
+                        skin: '#ffd7b5', hair: '#0a0a0a',
+                        cloth: '#7a2878', cloth2: '#d4af37',
+                        eye: '#000', type: 'male'
+                    },
+                    '林黛玉': {
+                        skin: '#f8e8d8', hair: '#111111',
+                        cloth: '#489199', cloth2: '#e8f4f8',
+                        eye: '#222222', type: 'female'
+                    },
+                    '薛宝钗': {
+                        skin: '#fae0c8', hair: '#111111',
+                        cloth: '#c82828', cloth2: '#f8d030',
+                        eye: '#222222', type: 'female'
+                    },
+                    '王熙凤': {
+                        skin: '#ffd2b0', hair: '#111111',
+                        cloth: '#a81212', cloth2: '#f8d030',
+                        eye: '#000000', type: 'female'
+                    },
+                    '紫鹃': {
+                        skin: '#ffd7b5', hair: '#111111',
+                        cloth: '#5878a8', cloth2: '#d0e0f8',
+                        eye: '#222222', type: 'female'
+                    },
+                    '袭人': {
+                        skin: '#ffd7b5', hair: '#111111',
+                        cloth: '#788858', cloth2: '#e8f0d8',
+                        eye: '#222222', type: 'female'
+                    },
+                    '门丁': {
+                        skin: '#e8c2a0', hair: '#222222',
+                        cloth: '#384050', cloth2: '#a0a8b8',
+                        eye: '#222222', type: 'male'
+                    },
+                    '指路牌': {
+                        skin: 'transparent', hair: 'transparent',
+                        cloth: 'transparent', cloth2: 'transparent',
+                        eye: 'transparent', type: 'sign'
+                    }
+                };
+
+                // 取角色配置，通用兜底
+                const config = charConfig[name] || {
+                    skin: '#ffd7b5', hair: '#3a2a1a',
+                    cloth: color, cloth2: '#ffffff',
+                    eye: '#000', type: 'male'
+                };
+
+                // 指路牌特殊处理
+                if (config.type === 'sign') {
+                    ctx.fillStyle = '#8b4513';
+                    ctx.fillRect(x + 4, y, TILE_SIZE - 8, TILE_SIZE);
+                    ctx.fillStyle = '#d4af37';
+                    ctx.font = '10px 宋体';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('指路', centerX, y + 12);
+                    ctx.fillText('牌', centerX, y + 24);
+                    // 名字
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px 宋体';
+                    ctx.textAlign = 'center';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(name, centerX, y - 5);
+                    ctx.fillText(name, centerX, y - 5);
+                    return;
+                }
+
+                // ========== 身体绘制（Q版2头身，带走路动画） ==========
+                // 身体阴影
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath();
+                ctx.ellipse(centerX, y + TILE_SIZE * 2, TILE_SIZE / 2, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 衣服主体
+                ctx.fillStyle = config.cloth;
+                ctx.fillRect(x + 2, y + TILE_SIZE + animOffset, TILE_SIZE - 4, TILE_SIZE - 2);
+                // 衣服镶边
+                ctx.strokeStyle = config.cloth2;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x + 3, y + TILE_SIZE + animOffset, TILE_SIZE - 6, TILE_SIZE - 4);
+                // 衣服领口
+                ctx.fillStyle = config.cloth2;
+                ctx.beginPath();
+                ctx.moveTo(centerX - 6, y + TILE_SIZE);
+                ctx.lineTo(centerX, y + TILE_SIZE + 8);
+                ctx.lineTo(centerX + 6, y + TILE_SIZE);
+                ctx.closePath();
+                ctx.fill();
+                // 腰带
+                ctx.fillStyle = config.cloth2;
+                ctx.fillRect(x + 2, y + TILE_SIZE + 16, TILE_SIZE - 4, 3);
+
+                // ========== 头部绘制 ==========
+                // 脸
+                ctx.fillStyle = config.skin;
+                ctx.beginPath();
+                ctx.arc(centerX, y + TILE_SIZE / 2 + animOffset / 2, TILE_SIZE / 2 + 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 头发（适配方向）
+                ctx.fillStyle = config.hair;
+                switch (direction) {
+                    case 'up': // 背面
+                        ctx.fillRect(centerX - 10, y + TILE_SIZE / 2 - 14 + animOffset / 2, 20, 12);
+                        // 发髻
+                        ctx.beginPath();
+                        ctx.arc(centerX, y + TILE_SIZE / 2 - 14 + animOffset / 2, 6, 0, Math.PI);
+                        ctx.fill();
+                        break;
+                    case 'down': // 正面（默认）
+                        // 头发主体
+                        ctx.fillRect(centerX - 11, y + TILE_SIZE / 2 - 12 + animOffset / 2, 22, 10);
+                        // 刘海
+                        ctx.beginPath();
+                        ctx.arc(centerX - 6, y + TILE_SIZE / 2 - 6 + animOffset / 2, 4, 0, Math.PI * 2);
+                        ctx.arc(centerX, y + TILE_SIZE / 2 - 6 + animOffset / 2, 4, 0, Math.PI * 2);
+                        ctx.arc(centerX + 6, y + TILE_SIZE / 2 - 6 + animOffset / 2, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        // 两侧头发
+                        if (config.type === 'female') {
+                            ctx.fillRect(centerX - 12, y + TILE_SIZE / 2 - 4 + animOffset / 2, 4, 14);
+                            ctx.fillRect(centerX + 8, y + TILE_SIZE / 2 - 4 + animOffset / 2, 4, 14);
+                        } else {
+                            ctx.fillRect(centerX - 12, y + TILE_SIZE / 2 - 4 + animOffset / 2, 4, 8);
+                            ctx.fillRect(centerX + 8, y + TILE_SIZE / 2 - 4 + animOffset / 2, 4, 8);
+                        }
+                        break;
+                    case 'left': // 左面
+                        ctx.fillRect(centerX - 12, y + TILE_SIZE / 2 - 10 + animOffset / 2, 12, 10);
+                        ctx.fillRect(centerX - 12, y + TILE_SIZE / 2 - 2 + animOffset / 2, 6, 10);
+                        break;
+                    case 'right': // 右面
+                        ctx.fillRect(centerX, y + TILE_SIZE / 2 - 10 + animOffset / 2, 12, 10);
+                        ctx.fillRect(centerX + 6, y + TILE_SIZE / 2 - 2 + animOffset / 2, 6, 10);
+                        break;
+                }
+
+                // ========== 眼睛&表情 ==========
+                if (direction === 'down') {
+                    // 眼睛
+                    ctx.fillStyle = config.eye;
+                    ctx.fillRect(centerX - 7, y + TILE_SIZE / 2 - 2 + animOffset / 2, 3, 3);
+                    ctx.fillRect(centerX + 4, y + TILE_SIZE / 2 - 2 + animOffset / 2, 3, 3);
+                    // 高光
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(centerX - 6, y + TILE_SIZE / 2 - 2 + animOffset / 2, 1, 1);
+                    ctx.fillRect(centerX + 5, y + TILE_SIZE / 2 - 2 + animOffset / 2, 1, 1);
+                    // 腮红（女性角色）
+                    if (config.type === 'female') {
+                        ctx.fillStyle = '#f8b0b0';
+                        ctx.globalAlpha = 0.4;
+                        ctx.beginPath();
+                        ctx.arc(centerX - 9, y + TILE_SIZE / 2 + 3 + animOffset / 2, 3, 0, Math.PI * 2);
+                        ctx.arc(centerX + 9, y + TILE_SIZE / 2 + 3 + animOffset / 2, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                    }
+                }
+
+                // ========== 名字绘制 ==========
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px 宋体';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                // 名字描边
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(name, centerX, y - 4);
+                ctx.fillText(name, centerX, y - 4);
+            }
+
+            // 绘制玩家
+            function drawPlayer() {
+                drawCharacter(game.player.x, game.player.y, game.player.direction, '#7a2878', '贾宝玉');
+            }
+
+            // 绘制NPC
+            function drawNPCs(scene) {
+                for (let i = 0; i < scene.npcs.length; i++) {
+                    const npc = scene.npcs[i];
+                    drawCharacter(npc.x, npc.y, 'down', '#b8860b', npc.name);
+                }
+            }
+
+            // 动态特效绘制
+            function drawEffects() {
+                // 更新和绘制花瓣
+                updatePetals();
+                drawPetals();
+                // 更新和绘制烛光
+                updateCandles();
+                drawCandles();
+            }
+            // 更新花瓣
+            function updatePetals() {
+                if (Math.random() < 0.05) {
+                    game.effects.petals.push({
+                        x: Math.random() * elements.canvas.width,
+                        y: -20,
+                        size: Math.random() * 8 + 4,
+                        speed: Math.random() * 2 + 1,
+                        angle: Math.random() * Math.PI * 2,
+                        rotation: Math.random() * Math.PI * 2,
+                        rotationSpeed: Math.random() * 0.05 - 0.025
+                    });
+                }
+                game.effects.petals = game.effects.petals.filter(petal => {
+                    petal.y += petal.speed;
+                    petal.x += Math.sin(petal.angle) * 0.5;
+                    petal.rotation += petal.rotationSpeed;
+                    return petal.y < elements.canvas.height + 20;
+                });
+            }
+            // 绘制花瓣
+            function drawPetals() {
+                game.effects.petals.forEach(petal => {
+                    ctx.save();
+                    ctx.translate(petal.x, petal.y);
+                    ctx.rotate(petal.rotation);
+                    ctx.fillStyle = '#ff8899';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, petal.size, petal.size / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+            // 更新烛光
+            function updateCandles() {
+                if (Math.random() < 0.01) {
+                    game.effects.candles.push({
+                        x: Math.random() * elements.canvas.width,
+                        y: Math.random() * elements.canvas.height,
+                        size: Math.random() * 10 + 5,
+                        brightness: Math.random() * 0.5 + 0.5,
+                        flickerSpeed: Math.random() * 0.1 + 0.05
+                    });
+                }
+                game.effects.candles = game.effects.candles.filter(candle => {
+                    candle.brightness += (Math.random() * 0.2 - 0.1);
+                    candle.brightness = Math.max(0.3, Math.min(1, candle.brightness));
+                    return Math.random() > 0.005;
+                });
+            }
+            // 绘制烛光
+            function drawCandles() {
+                game.effects.candles.forEach(candle => {
+                    ctx.save();
+                    ctx.globalAlpha = candle.brightness * 0.3;
+                    const glow = ctx.createRadialGradient(candle.x, candle.y, 0, candle.x, candle.y, candle.size * 2);
+                    glow.addColorStop(0, '#ffd700');
+                    glow.addColorStop(1, 'rgba(255,215,0,0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath();
+                    ctx.arc(candle.x, candle.y, candle.size * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            // ===================== 9. UI更新函数 =====================
+            function updateAllUI() {
+                updateTaskPanel();
+                updateFavorBar();
+                updateCollectProgress();
+                updateLocationList();
+                updateTalentPanel();
+                updateSkillList();
+                updateDebugPanel();
+            }
+            function updateTalentPanel() {
+                elements.talentPoetry.textContent = game.talent.poetry;
+                elements.talentCalligraphy.textContent = game.talent.calligraphy;
+                elements.talentMusic.textContent = game.talent.music;
+                elements.talentEtiquette.textContent = game.talent.etiquette;
+            }
+            function updateSkillList() {
+                let html = '';
+                html += `<div class="location-item ${game.skills.guqin ? 'unlocked' : ''}">${game.skills.guqin ? '✓' : '○'} 古琴</div>`;
+                html += `<div class="location-item ${game.skills.poetry ? 'unlocked' : ''}">${game.skills.poetry ? '✓' : '○'} 诗词</div>`;
+                html += `<div class="location-item ${game.skills.calligraphy ? 'unlocked' : ''}">${game.skills.calligraphy ? '✓' : '○'} 书法</div>`;
+                elements.skillList.innerHTML = html;
+            }
+            function updateDebugPanel() {
+                elements.keyW.className = game.keys.w ? 'key-active' : 'key-inactive';
+                elements.keyW.textContent = game.keys.w ? '已按下' : '未按下';
+                elements.keyA.className = game.keys.a ? 'key-active' : 'key-inactive';
+                elements.keyA.textContent = game.keys.a ? '已按下' : '未按下';
+                elements.keyS.className = game.keys.s ? 'key-active' : 'key-inactive';
+                elements.keyS.textContent = game.keys.s ? '已按下' : '未按下';
+                elements.keyD.className = game.keys.d ? 'key-active' : 'key-inactive';
+                elements.keyD.textContent = game.keys.d ? '已按下' : '未按下';
+                elements.moveLock.className = 'lock-inactive';
+                elements.moveLock.textContent = '已解锁';
+            }
+            function updateTaskPanel() {
+                elements.taskContent.innerHTML = `
+            <div class="${game.task.done ? 'task-done' : ''}">
+                ${game.task.id}. ${game.task.name}<br>
+                ${game.task.done ? '✓ 已完成' : '○ ' + game.task.desc}
+            </div>
+        `;
+            }
+            function updateFavorBar() {
+                elements.favorFill.style.width = game.favor.daiyu + '%';
+            }
+            function updateCollectProgress() {
+                elements.collectProgress.textContent = `${game.collection.poemPieces.length}/${game.collection.totalPieces} 碎片`;
+                if (game.collection.poemPieces.length === game.collection.totalPieces && !game.puzzle.zangHuaYinUnlocked) {
+                    game.puzzle.zangHuaYinUnlocked = true;
+                    showDialogue([{ name: '旁白', content: '你已收集齐《葬花吟》全部碎片，解锁了完整诗词！' }], 'system');
+                }
+            }
+            function updateLocationList() {
+                let html = '';
+                for (let i = 0; i < game.locations.all.length; i++) {
+                    const location = game.locations.all[i];
+                    const isUnlocked = game.locations.unlocked.includes(location.id);
+                    html += `<div class="location-item ${isUnlocked ? 'unlocked' : ''}">${isUnlocked ? '✓' : '○'} ${location.name}</div>`;
+                }
+                elements.locationList.innerHTML = html;
+            }
+            // ===================== 10. 事件绑定 =====================
+            console.log('🔗 开始绑定按钮事件');
+            // 封面按钮
+            elements.startGameBtn.addEventListener('click', startGame);
+            elements.gameDescBtn.addEventListener('click', function () { utils.show(elements.gameDescBox); });
+            elements.closeDescBtn.addEventListener('click', function () { utils.hide(elements.gameDescBox); });
+            elements.refreshBtn.addEventListener('click', function () { window.location.reload(); });
+            // 游戏内按钮
+            elements.unlockBtn.addEventListener('click', function () {
+                closeDialogue();
+                utils.showTip(elements.focusTip, '✅ 对话已关闭', 2000);
+            });
+            elements.backToCoverBtn.addEventListener('click', backToCover);
+            // 解谜界面按钮
+            elements.puzzleSubmitBtn.addEventListener('click', submitPuzzle);
+            elements.puzzleCancelBtn.addEventListener('click', closePuzzle);
+            // 画布焦点
+            elements.canvas.addEventListener('click', function () {
+                elements.canvas.focus();
+                game.isFocus = true;
+                if (game.soundEnabled && !audioContext) {
+                    initAudioContext();
+                }
+                utils.showTip(elements.focusTip, '✅ 控制已激活，WASD即可移动', 2000);
+            });
+            elements.canvas.addEventListener('blur', function () {
+                game.isFocus = false;
+                elements.focusTip.textContent = '⚠️ 请点击游戏画面激活控制';
+                elements.focusTip.style.color = '#ff6b6b';
+                utils.show(elements.focusTip);
+            });
+            // 键盘事件
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+            console.log('🎉 游戏初始化完成，点击【开始游戏】即可进入！');
+        });
+    </script>
+</body>
+
+</html>
